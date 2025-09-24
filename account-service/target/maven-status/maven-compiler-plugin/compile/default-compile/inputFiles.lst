@@ -3,5 +3,6 @@ C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\ac
 C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\dto\AccountDto.java
 C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\dto\CreateAccountRequest.java
 C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\entity\Account.java
+C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\exception\GlobalExceptionHandler.java
 C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\repository\AccountRepository.java
 C:\Users\romus\finbridge-platform\account-service\src\main\java\com\finbridge\account\service\AccountService.java
