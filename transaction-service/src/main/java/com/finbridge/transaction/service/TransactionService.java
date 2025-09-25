@@ -1,5 +1,6 @@
 package com.finbridge.transaction.service;
 
+import com.finbridge.transaction.client.AccountServiceClient;
 import com.finbridge.transaction.dto.TransactionDto;
 import com.finbridge.transaction.dto.TransactionRequest;
 import com.finbridge.transaction.entity.Transaction;
@@ -10,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+
 
 @Service
 public class TransactionService {
@@ -17,8 +20,12 @@ public class TransactionService {
     @Autowired
     private TransactionRepository txRepo;
 
+    @Autowired
+    private AccountServiceClient accountClient;
+
     @Transactional
     public TransactionDto createTransaction(TransactionRequest req) {
+        // 1. Создание записи транзакции со статусом PENDING
         Transaction tx = new Transaction();
         tx.setFromAccountId(req.getFromAccountId());
         tx.setToAccountId(req.getToAccountId());
@@ -26,14 +33,33 @@ public class TransactionService {
         tx.setCurrency(req.getCurrency());
         tx.setTimestamp(LocalDateTime.now());
         tx.setStatus("PENDING");
-        Transaction saved = txRepo.save(tx);
+        tx = txRepo.save(tx);
 
-        // TODO: call Account Service to debit and credit balances
+        try {
+            // 2. Проверяем баланс отправителя
+            BigDecimal fromBalance = accountClient.getBalance(req.getFromAccountId());
+            if (fromBalance.compareTo(req.getAmount()) < 0) {
+                throw new RuntimeException("Insufficient funds");
+            }
 
-        saved.setStatus("COMPLETED");
-        saved = txRepo.save(saved);
+            // 3. Дебет со счёта-отправителя
+            accountClient.debit(req.getFromAccountId(), req.getAmount());
 
-        return new TransactionDto(saved);
+            // 4. Кредит на счёт-получатель
+            accountClient.credit(req.getToAccountId(), req.getAmount());
+
+            // 5. Обновляем статус на COMPLETED
+            tx.setStatus("COMPLETED");
+
+        } catch (Exception ex) {
+            // В случае ошибки помечаем транзакцию как FAILED
+            tx.setStatus("FAILED");
+            System.err.println("Transaction failed: " + ex.getMessage());
+        }
+
+        // 6. Сохраняем финальный статус
+        tx = txRepo.save(tx);
+        return new TransactionDto(tx);
     }
 
     public List<TransactionDto> getTransactionsByAccount(Long accountId) {

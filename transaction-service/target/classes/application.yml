@@ -33,3 +33,7 @@ management:
 logging:
   level:
     com.finbridge: DEBUG
+
+account:
+  service:
+    url: http://localhost:8083

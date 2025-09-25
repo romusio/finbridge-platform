@@ -45,3 +45,11 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs        # URL для получения JSON спецификации
+  swagger-ui:
+    path: /swagger-ui.html    # Интерактивный UI
+    operationsSorter: method  # Сортировка операций по методу
+    tagsSorter: alpha         # Сортировка групп тегов по алфавиту
