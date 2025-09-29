@@ -1,0 +1,9 @@
+com\finbridge\reporting\dto\AccountStatsDto.class
+com\finbridge\reporting\controller\ReportController.class
+com\finbridge\reporting\entity\ReportMetadata.class
+com\finbridge\reporting\client\TransactionClient.class
+com\finbridge\reporting\repository\ReportMetadataRepo.class
+com\finbridge\reporting\client\AccountClient.class
+com\finbridge\reporting\controller\StatsController.class
+com\finbridge\reporting\dto\TransactionStatsDto.class
+com\finbridge\reporting\ReportingServiceApplication.class

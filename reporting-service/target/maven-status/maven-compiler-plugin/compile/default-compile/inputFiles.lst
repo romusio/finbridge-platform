@@ -1,0 +1,9 @@
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\client\AccountClient.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\client\TransactionClient.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\controller\ReportController.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\controller\StatsController.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\dto\AccountStatsDto.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\dto\TransactionStatsDto.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\entity\ReportMetadata.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\com\finbridge\reporting\repository\ReportMetadataRepo.java
+C:\Users\romus\finbridge-platform\reporting-service\src\main\java\ReportingServiceApplication.java

@@ -30,7 +30,7 @@ public class TransactionServiceIntegrationTest {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Создаём по-прямой счета в Account Service
+        // Создаём счета
         var req1 = Map.of(
                 "userId", 1L,
                 "accountName", "Src",
@@ -41,15 +41,31 @@ public class TransactionServiceIntegrationTest {
                 "accountName", "Dst",
                 "accountType", "SAVINGS"
         );
-        srcId = rest.postForEntity("/api/v1/accounts", new HttpEntity<>(req1, headers), Map.class)
-                .getBody().get("id", Long.class);
-        dstId = rest.postForEntity("/api/v1/accounts", new HttpEntity<>(req2, headers), Map.class)
-                .getBody().get("id", Long.class);
+
+        // Получаем ответ как Map<String,Object>
+        Map<String,Object> response1 = rest.postForEntity(
+                "/api/v1/accounts",
+                new HttpEntity<>(req1, headers),
+                Map.class
+        ).getBody();
+        srcId = ((Number) response1.get("id")).longValue();
+
+        Map<String,Object> response2 = rest.postForEntity(
+                "/api/v1/accounts",
+                new HttpEntity<>(req2, headers),
+                Map.class
+        ).getBody();
+        dstId = ((Number) response2.get("id")).longValue();
 
         // Пополняем src счёт
         rest.postForEntity(
-                "/api/v1/accounts/{id}/credit?amount=1000", null, Void.class, srcId);
+                "/api/v1/accounts/{id}/credit?amount=1000",
+                null,
+                Void.class,
+                srcId
+        );
     }
+
 
     @Test
     void testTransactionFlow() {

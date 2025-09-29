@@ -36,9 +36,12 @@ management:
 
 springdoc:
   api-docs:
-    path: /api-docs
+    path: /v3/api-docs        # URL для получения JSON спецификации
   swagger-ui:
-    path: /swagger-ui.html
+    path: /swagger-ui.html    # Интерактивный UI
+    operationsSorter: method  # Сортировка операций по методу
+    tagsSorter: alpha         # Сортировка групп тегов по алфавиту
+
 
 logging:
   level:

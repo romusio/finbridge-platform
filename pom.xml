@@ -25,6 +25,7 @@
         <module>user-service</module>
         <module>account-service</module>
         <module>shared/common-models</module>
+        <module>reporting-service</module>
     </modules>
 
     <dependencyManagement>
