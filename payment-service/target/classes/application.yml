@@ -1,0 +1,86 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: jdbc:h2:mem:payment_db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30000
+    instances:
+      payment-service:
+        baseConfig: default
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1000
+    instances:
+      payment-service:
+        baseConfig: default
+
+# External Service URLs (для будущих интеграций)
+external:
+  services:
+    account-service:
+      url: http://localhost:8083
+    transaction-service:
+      url: http://localhost:8084
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.finbridge.payment: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Payment Service Configuration
+payment:
+  limits:
+    max-amount-per-transaction: 100000.00
+    max-transactions-per-day: 100
