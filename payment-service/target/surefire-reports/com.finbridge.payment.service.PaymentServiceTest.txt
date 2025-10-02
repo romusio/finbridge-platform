@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.finbridge.payment.service.PaymentServiceTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.092 s -- in com.finbridge.payment.service.PaymentServiceTest

@@ -1,0 +1,3 @@
+com\finbridge\payment\controller\PaymentControllerIntegrationTest.class
+com\finbridge\payment\service\PaymentServiceTest.class
+com\finbridge\payment\service\PaymentValidationServiceTest.class
