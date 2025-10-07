@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+# - "first_rules.yml"
+# - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'finbridge-user-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          service: 'user-service'
+          application: 'finbridge'
+
+  - job_name: 'finbridge-account-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+        labels:
+          service: 'account-service'
+          application: 'finbridge'
+
+  - job_name: 'finbridge-transaction-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8084']
+        labels:
+          service: 'transaction-service'
+          application: 'finbridge'
+
+  - job_name: 'finbridge-reporting-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8085']
+        labels:
+          service: 'reporting-service'
+          application: 'finbridge'
+
+  - job_name: 'finbridge-api-gateway'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8079']
+        labels:
+          service: 'api-gateway'
+          application: 'finbridge'

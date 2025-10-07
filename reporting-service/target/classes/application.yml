@@ -1,21 +1,55 @@
+server:
+  port: 8085
+
 spring:
+  application:
+    name: finbridge-reporting-service
+
+  # База данных - файловая H2 для сохранения отчетов
   datasource:
     url: jdbc:h2:file:./data/reporting-db
     driverClassName: org.h2.Driver
     username: sa
     password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
 
+  # Планировщик для генерации отчетов
+  task:
+    scheduling:
+      enabled: true
+      pool:
+        size: 5
+
+# Настройки Feign клиентов для интеграции
 feign:
   client:
     config:
       default:
         connectTimeout: 5000
         readTimeout: 5000
+        loggerLevel: full
+      # Специальная конфигурация для разных сервисов
+      account-service:
+        connectTimeout: 3000
+        readTimeout: 8000
+      transaction-service:
+        connectTimeout: 3000
+        readTimeout: 10000
 
+# Настройки интеграции с другими сервисами
 transaction:
   service:
     url: http://localhost:8084
@@ -24,11 +58,136 @@ account:
   service:
     url: http://localhost:8083
 
+# ============================================================================
+# РАСШИРЕННЫЕ НАСТРОЙКИ МОНИТОРИНГА ДЛЯ PROMETHEUS И GRAFANA
+# ============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # Добавлено: prometheus endpoint для метрик
+        include: health,info,metrics,prometheus,scheduledtasks
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+    # Новые endpoints для мониторинга
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    # Для мониторинга планировщика отчетов
+    scheduledtasks:
+      enabled: true
+
+  # Настройки экспорта метрик в Prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        descriptions: true
+        # Включение метрик планировщика
+        step: 10s
+
+    # Теги для идентификации сервиса в Prometheus/Grafana
+    tags:
+      application: ${spring.application.name}
+      service: reporting-service
+      environment: development
+      team: finbridge
+      type: analytical
+
+    # Включение всех метрик + специальные для Reporting Service
+    enable:
+      jvm: true
+      system: true
+      process: true
+      tomcat: true
+      jdbc: true
+      # HTTP клиент для Feign
+      http.client: true
+      # Планировщик задач
+      task.execution: true
+      task.scheduling: true
+
+    # Настройка гистограмм для HTTP запросов
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        # Feign клиентские запросы к Account и Transaction Service
+        http.client.requests: true
+        # Метрики выполнения scheduled задач
+        task.execution.duration: true
+      percentiles:
+        http.server.requests: 0.5,0.9,0.95,0.99,0.999
+        http.client.requests: 0.5,0.9,0.95,0.99
+        task.execution.duration: 0.5,0.9,0.95,0.99
+      # Максимальное время ожидания
+      maximum-expected-value:
+        http.server.requests: 60s
+        # Reporting может выполняться долго
+        http.client.requests: 30s
+        # Задачи генерации отчетов могут быть длительными
+        task.execution.duration: 300s
+
+# Информация о приложении (будет видна в /actuator/info)
+info:
+  app:
+    name: FinBridge Reporting Service
+    description: Analytics and reporting service with scheduled reports and Feign integration
+    version: 1.0.0
+    developer: FinBridge Team
+    features:
+      - Daily Reports Generation
+      - Account Statistics
+      - Transaction Analytics
+      - Scheduled Report Tasks
+      - Multi-Service Integration
+      - Historical Data Analysis
+  integrations:
+    account-service: ${account.service.url}
+    transaction-service: ${transaction.service.url}
+  database:
+    type: H2 File-based
+    location: ./data/reporting-db
+  scheduler:
+    enabled: ${spring.task.scheduling.enabled}
+    pool-size: ${spring.task.scheduling.pool.size}
+  java:
+    version: ${java.version}
+  spring:
+    boot:
+      version: ${spring-boot.version}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
 
-server:
-  port: 8085
+logging:
+  level:
+    # Основное приложение
+    com.finbridge: DEBUG
+    # Feign клиенты - важно для отслеживания вызовов
+    feign: DEBUG
+    feign.Logger: DEBUG
+    # HTTP клиенты
+    org.springframework.web.client: DEBUG
+    org.springframework.http.client: DEBUG
+    # Планировщик задач
+    org.springframework.scheduling: DEBUG
+    # Мониторинг
+    io.micrometer: INFO
+    org.springframework.boot.actuator: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    # Логи отчетов в отдельный файл
+    name: ./logs/reporting-service.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
