@@ -1,95 +1,83 @@
 package com.finbridge.transaction;
 
-import com.finbridge.transaction.dto.TransactionRequest;
+import com.finbridge.transaction.client.AccountServiceClient;
 import com.finbridge.transaction.dto.TransactionDto;
+import com.finbridge.transaction.dto.TransactionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class TransactionServiceIntegrationTest {
+class TransactionServiceIntegrationTest {
+
+    private static final Long SOURCE_ACCOUNT_ID = 101L;
+    private static final Long DESTINATION_ACCOUNT_ID = 202L;
 
     @Autowired
     private TestRestTemplate rest;
 
+    @MockBean
+    private AccountServiceClient accountClient;
+
     private HttpHeaders headers;
-    private Long srcId;
-    private Long dstId;
 
     @BeforeEach
     void setup() {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-
-        // Создаём счета
-        var req1 = Map.of(
-                "userId", 1L,
-                "accountName", "Src",
-                "accountType", "CHECKING"
-        );
-        var req2 = Map.of(
-                "userId", 1L,
-                "accountName", "Dst",
-                "accountType", "SAVINGS"
-        );
-
-        // Получаем ответ как Map<String,Object>
-        Map<String,Object> response1 = rest.postForEntity(
-                "/api/v1/accounts",
-                new HttpEntity<>(req1, headers),
-                Map.class
-        ).getBody();
-        srcId = ((Number) response1.get("id")).longValue();
-
-        Map<String,Object> response2 = rest.postForEntity(
-                "/api/v1/accounts",
-                new HttpEntity<>(req2, headers),
-                Map.class
-        ).getBody();
-        dstId = ((Number) response2.get("id")).longValue();
-
-        // Пополняем src счёт
-        rest.postForEntity(
-                "/api/v1/accounts/{id}/credit?amount=1000",
-                null,
-                Void.class,
-                srcId
-        );
+        when(accountClient.getBalance(SOURCE_ACCOUNT_ID)).thenReturn(new BigDecimal("1000.00"));
     }
 
-
     @Test
-    void testTransactionFlow() {
-        // Создание транзакции
-        TransactionRequest txReq = new TransactionRequest();
-        txReq.setFromAccountId(srcId);
-        txReq.setToAccountId(dstId);
-        txReq.setAmount(new BigDecimal("250"));
-        txReq.setCurrency("RUB");
+    void createsCompletedTransactionAndReturnsItInAccountHistory() {
+        TransactionRequest request = new TransactionRequest();
+        request.setFromAccountId(SOURCE_ACCOUNT_ID);
+        request.setToAccountId(DESTINATION_ACCOUNT_ID);
+        request.setAmount(new BigDecimal("250.00"));
+        request.setCurrency("RUB");
 
-        ResponseEntity<TransactionDto> txResp = rest.postForEntity(
-                "/api/v1/transactions", new HttpEntity<>(txReq, headers), TransactionDto.class);
-        assertThat(txResp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(txResp.getBody().getStatus()).isEqualTo("COMPLETED");
+        ResponseEntity<TransactionDto> response = rest.postForEntity(
+                "/api/v1/transactions",
+                new HttpEntity<>(request, headers),
+                TransactionDto.class
+        );
 
-        // Балансы
-        var balSrc = rest.getForEntity("/api/v1/accounts/{id}/balance", BigDecimal.class, srcId).getBody();
-        var balDst = rest.getForEntity("/api/v1/accounts/{id}/balance", BigDecimal.class, dstId).getBody();
-        assertThat(balSrc).isEqualByComparingTo(new BigDecimal("750"));
-        assertThat(balDst).isEqualByComparingTo(new BigDecimal("250"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getBody().getFromAccountId()).isEqualTo(SOURCE_ACCOUNT_ID);
+        assertThat(response.getBody().getToAccountId()).isEqualTo(DESTINATION_ACCOUNT_ID);
+        assertThat(response.getBody().getAmount()).isEqualByComparingTo("250.00");
 
-        // История
+        verify(accountClient).getBalance(SOURCE_ACCOUNT_ID);
+        verify(accountClient).debit(SOURCE_ACCOUNT_ID, new BigDecimal("250.00"));
+        verify(accountClient).credit(DESTINATION_ACCOUNT_ID, new BigDecimal("250.00"));
+
         ResponseEntity<List> history = rest.exchange(
-                "/api/v1/transactions/account/{id}", HttpMethod.GET, new HttpEntity<>(headers), List.class, srcId);
-        assertThat(history.getBody()).isNotEmpty();
+                "/api/v1/transactions/account/{id}",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                List.class,
+                SOURCE_ACCOUNT_ID
+        );
+
+        assertThat(history.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(history.getBody()).isNotNull().isNotEmpty();
     }
 }
