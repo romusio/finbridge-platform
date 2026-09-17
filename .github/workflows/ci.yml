@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - "refactor/**"
+      - "feature/**"
+      - "ci/**"
+  pull_request:
+    branches:
+      - main
+      - refactor/security-hygiene
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finbridge-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify reactor and run tests
+        run: mvn --batch-mode --no-transfer-progress clean verify
