@@ -1,152 +1,65 @@
 server:
-  port: 8083
+  port: 8079
 
 spring:
   application:
-    name: finbridge-account-service
+    name: finbridge-api-gateway
 
-  datasource:
-    url: jdbc:h2:mem:finbridge_accounts
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/users/**
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        - id: account-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/accounts/**
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-        format_sql: true
-        # Дополнительные настройки для мониторинга производительности БД
-        generate_statistics: true
-        cache:
-          use_second_level_cache: false
+        - id: transaction-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/transactions/**
 
-# ============================================================================
-# РАСШИРЕННЫЕ НАСТРОЙКИ МОНИТОРИНГА ДЛЯ PROMETHEUS И GRAFANA
-# ============================================================================
+        - id: reporting-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/reports/**,/api/v1/stats/**
+
+        - id: payment-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/v1/payments/**
+
 management:
   endpoints:
     web:
       exposure:
-        # Добавлено: prometheus endpoint для метрик
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,gateway
   endpoint:
     health:
       show-details: always
       enabled: true
-    # Новые endpoints для мониторинга
-    metrics:
-      enabled: true
-    prometheus:
+    gateway:
       enabled: true
 
-  # Настройки экспорта метрик в Prometheus
   metrics:
-    export:
-      prometheus:
-        enabled: true
-        descriptions: true
-
-    # Теги для идентификации сервиса в Prometheus/Grafana
     tags:
       application: ${spring.application.name}
-      service: account-service
+      service: api-gateway
       environment: development
       team: finbridge
-      type: core-service
-      domain: banking
-
-    # Включение JVM и системных метрик + специальные для Account Service
-    enable:
-      jvm: true
-      system: true
-      process: true
-      tomcat: true
-      jdbc: true
-      # Hibernate метрики для отслеживания производительности БД
-      hibernate: true
-
-    # Настройка гистограмм для HTTP запросов (критично для банковских операций)
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-        # Метрики для операций с БД
-        jdbc.connections.active: true
-        # Hibernate query метрики
-        hibernate.sessions.open: true
-      percentiles:
-        http.server.requests: 0.5,0.9,0.95,0.99,0.999
-        # Более детальный анализ для банковских операций
-        jdbc.connections.active: 0.5,0.9,0.95,0.99
-      # Максимальное время ожидания
-      maximum-expected-value:
-        http.server.requests: 15s
-        # Банковские операции должны быть быстрыми
-        jdbc.connections.active: 5s
-
-# Информация о приложении (будет видна в /actuator/info)
-info:
-  app:
-    name: FinBridge Account Service
-    description: Core banking service for account creation, management and balance operations
-    version: 1.0.0
-    developer: FinBridge Team
-    features:
-      - Account Creation (CHECKING, SAVINGS, DEPOSIT, CREDIT)
-      - Balance Management
-      - Account Status Control
-      - Debit/Credit Operations
-      - Account Validation
-      - Transaction Support
-  banking:
-    supported-account-types:
-      - CHECKING
-      - SAVINGS
-      - DEPOSIT
-      - CREDIT
-    operations:
-      - create-account
-      - get-balance
-      - debit-funds
-      - credit-funds
-      - account-status
-  database:
-    type: H2 In-Memory
-    location: finbridge_accounts
-    auto-ddl: create-drop
-  java:
-    version: ${java.version}
-  spring:
-    boot:
-      version: ${spring-boot.version}
 
 springdoc:
   api-docs:
-    path: /v3/api-docs        # URL для получения JSON спецификации
+    path: /v3/api-docs
   swagger-ui:
-    path: /swagger-ui.html    # Интерактивный UI
-    operationsSorter: method  # Сортировка операций по методу
-    tagsSorter: alpha         # Сортировка групп тегов по алфавиту
+    path: /swagger-ui.html
 
 logging:
   level:
-    com.finbridge: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    # Добавлено для отладки мониторинга
+    com.finbridge: INFO
+    org.springframework.cloud.gateway: INFO
     io.micrometer: INFO
-    org.springframework.boot.actuator: INFO
-    # JDBC и connection pool логирование
-    com.zaxxer.hikari: DEBUG
-    org.springframework.jdbc: DEBUG
-  pattern:
-    # Улучшенный формат логов для банковских операций
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
